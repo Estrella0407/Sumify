@@ -88,12 +88,6 @@ export default async function Home() {
                 color: "#888",
                 border: "1px solid rgba(255,255,255,0.07)",
               }}
-              onMouseEnter={e => {
-                ;(e.currentTarget as HTMLElement).style.color = "#f0f0f0"
-              }}
-              onMouseLeave={e => {
-                ;(e.currentTarget as HTMLElement).style.color = "#888"
-              }}
             >
               Disconnect Spotify
             </a>
