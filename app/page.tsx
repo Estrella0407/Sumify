@@ -53,6 +53,7 @@ export default async function Home() {
   const myProfile =
     stats && session
       ? {
+          spotifyId: (session as any).spotifyId,
           name: session.user?.name ?? "You",
           image: session.user?.image ?? null,
           topArtists: stats.topArtists,
@@ -160,7 +161,11 @@ export default async function Home() {
                     </div>
                     <div className="grid gap-5 sm:grid-cols-2">
                       {savedUserColumns
-                        .filter((u) => !u.error)
+                        .filter(
+                          (u) =>
+                            !u.error &&
+                            u.spotifyId !== myProfile.spotifyId
+                        )
                         .map((friend) => (
                           <CompatibilityCard
                             key={friend.spotifyId}

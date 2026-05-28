@@ -67,6 +67,10 @@ function ScoreRing({ score, color }: { score: number; color: string }) {
 }
 
 export function CompatibilityCard({ currentUser, friend }: CompatibilityCardProps) {
+  if (currentUser.name === friend.name) {
+    return null
+  }
+  
   const result = computeCompatibility(
     { topArtists: currentUser.topArtists, genreBreakdown: currentUser.genreBreakdown },
     { topArtists: friend.topArtists, genreBreakdown: friend.genreBreakdown }

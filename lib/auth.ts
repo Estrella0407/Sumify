@@ -16,6 +16,7 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, account, profile }: any) {
       if (account && profile) {
         token.accessToken = account.access_token
+        token.spotifyId = profile.id
 
         await fetch(`${process.env.SUPABASE_URL}/rest/v1/spotify_users`, {
           method: "POST",
@@ -41,6 +42,11 @@ export const authOptions: NextAuthOptions = {
       if (token.accessToken) {
         session.accessToken = token.accessToken
       }
+
+      if (token.spotifyId) {
+        session.spotifyId = token.spotifyId
+      }
+      
       return session
     },
   },
