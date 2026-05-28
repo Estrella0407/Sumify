@@ -170,13 +170,28 @@ const DEFAULT_PERSONALITY: ListenerPersonality = {
   color: "#1DB954",
 }
 
+const normalizeGenreName = (value: string) =>
+  value
+    .toLowerCase()
+    .replace(/[-_]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\bkorean pop\b|\bk-pop\b|\bkpop\b/g, "kpop")
+    .replace(/\bkorean r&b\b|\bkorean rb\b|\bk-r&b\b|\bk-rb\b/g, "krnb")
+
+const genreMatches = (genreA: string, genreB: string) => {
+  const a = normalizeGenreName(genreA)
+  const b = normalizeGenreName(genreB)
+  return a === b || a.includes(b) || b.includes(a)
+}
+
 export function derivePersonality(genres: SpotifyGenre[]): ListenerPersonality {
-  const topGenreNames = genres.map((g) => g.name.toLowerCase())
+  const topGenreNames = genres.map((g) => normalizeGenreName(g.name))
   let bestMatch = { personality: DEFAULT_PERSONALITY, score: 0 }
 
   for (const p of PERSONALITIES) {
     const score = p.genres.reduce((acc, g) => {
-      return acc + topGenreNames.filter((tg) => tg.includes(g) || g.includes(tg)).length
+      return acc + topGenreNames.filter((tg) => genreMatches(tg, g)).length
     }, 0)
     if (score > bestMatch.score) {
       bestMatch = {
