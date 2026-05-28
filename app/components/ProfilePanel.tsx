@@ -78,8 +78,6 @@ export function ProfilePanel({ session, stats }: ProfilePanelProps) {
                 key={track.name + index}
                 className="flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors"
                 style={{ cursor: "default" }}
-                onMouseEnter={e => (e.currentTarget.style.background = "#1a1a1a")}
-                onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
               >
                 <span
                   className="text-xs font-bold w-5 text-center shrink-0"
