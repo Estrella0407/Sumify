@@ -11,69 +11,115 @@ export function ProfilePanel({ session, stats }: ProfilePanelProps) {
   const tracks = stats?.topTracks ?? []
 
   return (
-    <section className="rounded-3xl border border-neutral-800 bg-neutral-900/80 p-6 shadow-lg shadow-black/10">
-      <div className="flex items-center gap-4 border-b border-neutral-800 pb-6 mb-6">
-        <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-emerald-500/10 text-emerald-300">
-          <Music className="h-7 w-7" />
-        </div>
-        <div>
-          <p className="text-xs uppercase tracking-[0.28em] text-neutral-400">Your Spotify Stats</p>
-          <h2 className="mt-2 text-2xl font-semibold text-white">
-            {session.user?.name ?? "Connected User"}
-          </h2>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-3 mb-6">
+    <section
+      className="rounded-2xl border p-6 flex flex-col gap-6"
+      style={{
+        background: "#111",
+        borderColor: "rgba(255,255,255,0.07)",
+      }}
+    >
+      {/* User header */}
+      <div className="flex items-center gap-4">
         {session.user?.image ? (
           <img
             src={session.user.image}
             alt={session.user.name ?? "avatar"}
-            className="h-12 w-12 rounded-full ring-2 ring-emerald-500"
+            className="h-14 w-14 rounded-xl object-cover"
+            style={{ border: "2px solid #1DB954" }}
           />
         ) : (
-          <div className="grid h-12 w-12 place-items-center rounded-full bg-neutral-800 text-neutral-400">
-            <User className="h-6 w-6" />
+          <div
+            className="h-14 w-14 rounded-xl flex items-center justify-center"
+            style={{ background: "#1a1a1a" }}
+          >
+            <User className="h-6 w-6" style={{ color: "#666" }} />
           </div>
         )}
         <div>
-          <p className="text-sm font-semibold text-white">
-            {session.user?.email ?? "No email available"}
+          <p
+            className="text-xs font-bold tracking-widest uppercase mb-1"
+            style={{ color: "#1DB954", fontFamily: "Syne, sans-serif" }}
+          >
+            Your profile
           </p>
-          <p className="text-xs uppercase tracking-[0.24em] text-emerald-400/80">Active session</p>
+          <h2
+            className="text-xl font-bold leading-tight"
+            style={{ fontFamily: "Syne, sans-serif", color: "#f0f0f0" }}
+          >
+            {session.user?.name ?? "Connected User"}
+          </h2>
+          <p className="text-sm mt-0.5" style={{ color: "#555" }}>
+            {session.user?.email ?? ""}
+          </p>
         </div>
       </div>
 
-      <div className="space-y-4">
-        <div className="rounded-3xl bg-neutral-950/60 p-4">
-          <div className="flex items-center justify-between text-xs uppercase tracking-[0.24em] text-neutral-500 mb-4">
-            <span>Top tracks</span>
-            <span>Monthly</span>
-          </div>
-          {tracks.length ? (
-            <div className="space-y-3">
-              {tracks.map((track, index) => (
-                <div key={track.name + index} className="group flex items-center gap-3 rounded-2xl bg-neutral-900 p-3 transition hover:bg-neutral-800">
-                  {track.albumArt ? (
-                    <img src={track.albumArt} alt={track.name} className="h-12 w-12 rounded-xl object-cover" />
-                  ) : (
-                    <div className="grid h-12 w-12 place-items-center rounded-xl bg-neutral-800 text-neutral-500">
-                      <Music className="h-5 w-5" />
-                    </div>
-                  )}
-                  <div className="min-w-0">
-                    <p className="truncate font-semibold text-white">{track.name}</p>
-                    <p className="truncate text-sm text-neutral-400">{track.artist}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm leading-6 text-neutral-400">
-              No top tracks available yet. Refresh after Spotify authorization and invite friends to build the group leaderboard.
-            </p>
-          )}
+      {/* Divider */}
+      <div style={{ height: 1, background: "rgba(255,255,255,0.06)" }} />
+
+      {/* Top tracks */}
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <p
+            className="text-xs font-bold tracking-widest uppercase"
+            style={{ color: "#1DB954", fontFamily: "Syne, sans-serif" }}
+          >
+            Top tracks
+          </p>
+          <span className="text-xs" style={{ color: "#444" }}>
+            Last 4 weeks
+          </span>
         </div>
+
+        {tracks.length ? (
+          <div className="flex flex-col gap-1">
+            {tracks.map((track, index) => (
+              <div
+                key={track.name + index}
+                className="flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors"
+                style={{ cursor: "default" }}
+                onMouseEnter={e => (e.currentTarget.style.background = "#1a1a1a")}
+                onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+              >
+                <span
+                  className="text-xs font-bold w-5 text-center shrink-0"
+                  style={{ color: "#333", fontFamily: "Syne, sans-serif" }}
+                >
+                  {index + 1}
+                </span>
+                {track.albumArt ? (
+                  <img
+                    src={track.albumArt}
+                    alt={track.name}
+                    className="h-10 w-10 rounded-lg object-cover shrink-0"
+                  />
+                ) : (
+                  <div
+                    className="h-10 w-10 rounded-lg flex items-center justify-center shrink-0"
+                    style={{ background: "#1a1a1a" }}
+                  >
+                    <Music className="h-4 w-4" style={{ color: "#444" }} />
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <p
+                    className="truncate text-sm font-medium"
+                    style={{ color: "#e0e0e0" }}
+                  >
+                    {track.name}
+                  </p>
+                  <p className="truncate text-xs" style={{ color: "#555" }}>
+                    {track.artist}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm leading-relaxed" style={{ color: "#444" }}>
+            No top tracks yet. Authorize Spotify to see your listening data.
+          </p>
+        )}
       </div>
     </section>
   )

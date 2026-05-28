@@ -17,7 +17,7 @@ export const authOptions: NextAuthOptions = {
       if (account && profile) {
         token.accessToken = account.access_token
 
-        await fetch(`${process.env.SUPABASE_URL}/rest/v1/friends_spotify`, {
+        await fetch(`${process.env.SUPABASE_URL}/rest/v1/spotify_users`, {
           method: "POST",
           headers: {
             apikey: process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -26,11 +26,11 @@ export const authOptions: NextAuthOptions = {
             Prefer: "resolution=merge-duplicates",
           },
           body: JSON.stringify({
-            id: token.sub,
-            display_name: profile.display_name,
             spotify_id: profile.id,
+            name: profile.display_name,
+            email: profile.email,
+            image: profile.images?.[0]?.url || "",
             refresh_token: account.refresh_token,
-            avatar_url: profile.images?.[0]?.url || "",
           }),
         })
       }

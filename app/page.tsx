@@ -26,32 +26,74 @@ export default async function Home() {
         return {
           ...user,
           topTracks: [],
-          error: "Unable to load saved user tracks. Token may need refresh.",
+          error: "Unable to load tracks. Token may need refresh.",
         }
       }
     })
   )
 
   return (
-    <main className="min-h-screen bg-neutral-950 text-neutral-50 p-6 md:p-10">
-      <div className="max-w-6xl mx-auto">
-        <header className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between border-b border-neutral-800 pb-8 mb-10">
+    <main
+      className="min-h-screen relative"
+      style={{ background: "#0a0a0a", color: "#f0f0f0" }}
+    >
+      {/* Ambient glow */}
+      <div
+        aria-hidden
+        style={{
+          position: "fixed",
+          top: "-30vh",
+          left: "50%",
+          transform: "translateX(-50%)",
+          width: "70vw",
+          height: "60vh",
+          background:
+            "radial-gradient(ellipse, rgba(29,185,84,0.07) 0%, transparent 70%)",
+          pointerEvents: "none",
+          zIndex: 0,
+        }}
+      />
+
+      <div
+        className="relative max-w-6xl mx-auto px-5 py-10 md:px-10 md:py-14"
+        style={{ zIndex: 1 }}
+      >
+        {/* Header */}
+        <header className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between mb-14">
           <div>
-            <p className="text-sm uppercase tracking-[0.32em] text-emerald-400/80 font-semibold mb-3">
-              Sumify Group Leaderboard
+            <p
+              className="text-xs font-bold tracking-widest uppercase mb-3"
+              style={{ color: "#1DB954", fontFamily: "Syne, sans-serif" }}
+            >
+              Sumify
             </p>
-            <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-white">
-              Compare music tastes with friends.
+            <h1
+              className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-none"
+              style={{ fontFamily: "Syne, sans-serif", color: "#f0f0f0" }}
+            >
+              Compare music<br />
+              <span style={{ color: "#1DB954" }}>tastes</span> with friends.
             </h1>
-            <p className="mt-4 max-w-2xl text-sm leading-7 text-neutral-400">
-              Connect Spotify, store refresh tokens in Supabase, and view all saved users’ top tracks in columns.
+            <p className="mt-4 text-sm leading-relaxed max-w-md" style={{ color: "#555" }}>
+              Connect Spotify, see your top tracks and artists, and compare listening habits across your crew.
             </p>
           </div>
 
           {session ? (
             <a
               href="/api/auth/signout"
-              className="inline-flex items-center gap-2 rounded-full bg-neutral-800 px-5 py-3 text-sm font-semibold text-white transition hover:bg-neutral-700"
+              className="inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium transition-colors self-start sm:self-auto"
+              style={{
+                background: "#1a1a1a",
+                color: "#888",
+                border: "1px solid rgba(255,255,255,0.07)",
+              }}
+              onMouseEnter={e => {
+                ;(e.currentTarget as HTMLElement).style.color = "#f0f0f0"
+              }}
+              onMouseLeave={e => {
+                ;(e.currentTarget as HTMLElement).style.color = "#888"
+              }}
             >
               Disconnect Spotify
             </a>
@@ -62,73 +104,146 @@ export default async function Home() {
 
         {session ? (
           <>
-            <div className="grid gap-8 lg:grid-cols-[340px_minmax(0,1fr)]">
+            {/* Main grid */}
+            <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
               <ProfilePanel session={session} stats={stats} />
               <GroupLeaderboard stats={stats} />
             </div>
 
-            <section className="mt-10 space-y-6">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-xs uppercase tracking-[0.32em] text-emerald-400/80 font-semibold">
-                    Saved group columns
+            {/* Saved users section */}
+            {savedUserColumns.length > 0 && (
+              <section className="mt-12">
+                <div className="mb-6">
+                  <p
+                    className="text-xs font-bold tracking-widest uppercase mb-1"
+                    style={{ color: "#1DB954", fontFamily: "Syne, sans-serif" }}
+                  >
+                    Connected friends
                   </p>
-                  <h2 className="text-3xl font-bold text-white">Top tracks for every connected user</h2>
+                  <h2
+                    className="text-2xl font-bold"
+                    style={{ fontFamily: "Syne, sans-serif" }}
+                  >
+                    Top tracks for every user
+                  </h2>
                 </div>
-              </div>
 
-              {savedUserColumns.length ? (
-                <div className="grid gap-6 xl:grid-cols-3">
+                <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
                   {savedUserColumns.map((user) => (
-                    <article key={user.spotifyId} className="rounded-3xl border border-neutral-800 bg-neutral-900/80 p-6 shadow-lg shadow-black/10">
-                      <div className="flex items-center gap-4 mb-6">
+                    <article
+                      key={user.spotifyId}
+                      className="rounded-2xl border p-5"
+                      style={{
+                        background: "#111",
+                        borderColor: "rgba(255,255,255,0.07)",
+                      }}
+                    >
+                      <div className="flex items-center gap-3 mb-5">
                         {user.image ? (
-                          <img src={user.image} alt={user.name} className="h-14 w-14 rounded-2xl object-cover" />
+                          <img
+                            src={user.image}
+                            alt={user.name}
+                            className="h-11 w-11 rounded-xl object-cover shrink-0"
+                          />
                         ) : (
-                          <div className="grid h-14 w-14 place-items-center rounded-2xl bg-neutral-800 text-neutral-400">U</div>
+                          <div
+                            className="h-11 w-11 rounded-xl flex items-center justify-center shrink-0 text-sm font-bold"
+                            style={{ background: "#1a1a1a", color: "#333" }}
+                          >
+                            {user.name.charAt(0).toUpperCase()}
+                          </div>
                         )}
-                        <div>
-                          <p className="text-lg font-semibold text-white">{user.name}</p>
-                          <p className="text-sm text-neutral-500">Saved Spotify token</p>
+                        <div className="min-w-0">
+                          <p
+                            className="font-semibold truncate"
+                            style={{ color: "#e0e0e0", fontFamily: "Syne, sans-serif" }}
+                          >
+                            {user.name}
+                          </p>
+                          <p className="text-xs" style={{ color: "#444" }}>
+                            Spotify connected
+                          </p>
                         </div>
                       </div>
 
                       {user.error ? (
-                        <p className="text-sm text-red-400">{user.error}</p>
-                      ) : (
-                        <div className="space-y-4">
-                          {user.topTracks.length ? (
-                            user.topTracks.map((track, index) => (
-                              <div key={`${user.spotifyId}-${track.name}-${index}`} className="rounded-3xl bg-neutral-950 p-3">
-                                <p className="text-sm font-semibold text-white truncate">{track.name}</p>
-                                <p className="text-xs text-neutral-500 truncate">{track.artist}</p>
+                        <p className="text-sm" style={{ color: "#c0392b" }}>
+                          {user.error}
+                        </p>
+                      ) : user.topTracks.length ? (
+                        <div className="flex flex-col gap-1">
+                          {user.topTracks.map((track, index) => (
+                            <div
+                              key={`${user.spotifyId}-${track.name}-${index}`}
+                              className="flex items-center gap-2.5 rounded-lg px-2 py-2"
+                              style={{ background: "#151515" }}
+                            >
+                              <span
+                                className="text-xs w-4 shrink-0 text-center"
+                                style={{ color: "#333", fontFamily: "Syne, sans-serif" }}
+                              >
+                                {index + 1}
+                              </span>
+                              <div className="min-w-0">
+                                <p
+                                  className="truncate text-sm font-medium"
+                                  style={{ color: "#ccc" }}
+                                >
+                                  {track.name}
+                                </p>
+                                <p className="truncate text-xs" style={{ color: "#444" }}>
+                                  {track.artist}
+                                </p>
                               </div>
-                            ))
-                          ) : (
-                            <p className="text-sm leading-6 text-neutral-400">
-                              No saved top tracks available for this user yet.
-                            </p>
-                          )}
+                            </div>
+                          ))}
                         </div>
+                      ) : (
+                        <p className="text-sm" style={{ color: "#444" }}>
+                          No saved top tracks yet.
+                        </p>
                       )}
                     </article>
                   ))}
                 </div>
-              ) : (
-                <div className="rounded-3xl border border-neutral-800 bg-neutral-900/40 p-8 text-center">
-                  <p className="text-sm text-neutral-400">
-                    No saved Spotify refresh tokens found yet. Have friends sign in so their tokens are stored and displayed.
-                  </p>
-                </div>
-              )}
-            </section>
+              </section>
+            )}
           </>
         ) : (
-          <div className="rounded-3xl border border-neutral-800 bg-neutral-900/40 p-12 text-center shadow-xl shadow-black/30">
-            <p className="text-sm uppercase tracking-[0.32em] text-emerald-400/80 mb-4">No account connected yet</p>
-            <h2 className="text-3xl font-bold text-white mb-4">Start your group listening leaderboard.</h2>
-            <p className="mx-auto max-w-xl text-sm leading-7 text-neutral-400 mb-8">
-              Connect your Spotify account to see your top tracks, top artists, and genre breakdown. Invite friends to build a shared music leaderboard.
+          /* Landing / not signed in */
+          <div
+            className="rounded-2xl border p-12 text-center max-w-2xl mx-auto mt-10"
+            style={{
+              background: "#111",
+              borderColor: "rgba(255,255,255,0.07)",
+            }}
+          >
+            <div
+              className="h-16 w-16 rounded-2xl mx-auto mb-6 flex items-center justify-center"
+              style={{ background: "rgba(29,185,84,0.1)" }}
+            >
+              <svg
+                viewBox="0 0 24 24"
+                className="h-8 w-8"
+                fill="#1DB954"
+              >
+                <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z" />
+              </svg>
+            </div>
+            <p
+              className="text-xs font-bold tracking-widest uppercase mb-3"
+              style={{ color: "#1DB954", fontFamily: "Syne, sans-serif" }}
+            >
+              Get started
+            </p>
+            <h2
+              className="text-3xl font-black mb-3"
+              style={{ fontFamily: "Syne, sans-serif" }}
+            >
+              Your music, ranked.
+            </h2>
+            <p className="text-sm leading-relaxed mb-8 max-w-sm mx-auto" style={{ color: "#555" }}>
+              Connect Spotify to see your top tracks, artists, and genres. Invite friends to build a shared leaderboard.
             </p>
             <ConnectButton href="/api/auth/signin/spotify" />
           </div>
