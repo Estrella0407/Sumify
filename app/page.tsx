@@ -1,4 +1,5 @@
-import { auth, signIn, signOut } from "../lib/auth"
+import { getServerSession } from "next-auth"
+import { authOptions } from "../lib/auth"
 import { getPersonalStats, getTopTracksForRefreshToken } from "../lib/spotify"
 import { getSavedSpotifyUsers } from "../lib/db"
 import { ConnectButton } from "./components/ConnectButton"
@@ -10,19 +11,10 @@ import type {
   SpotifyStats,
 } from "../types/spotify"
 
-async function login() {
-  "use server"
-  await signIn("spotify")
-}
-
-async function logout() {
-  "use server"
-  await signOut()
-}
-
 export default async function Home() {
-  const session = await auth()
-  const stats: SpotifyStats | null = session?.accessToken ? await getPersonalStats(session.accessToken) : null
+  const session = await getServerSession(authOptions)
+  const accessToken = (session as any)?.accessToken as string | undefined
+  const stats: SpotifyStats | null = accessToken ? await getPersonalStats(accessToken) : null
   const savedUsers: SavedSpotifyUser[] = await getSavedSpotifyUsers()
 
   const savedUserColumns: SavedSpotifyUserWithTopTracks[] = await Promise.all(
@@ -57,13 +49,14 @@ export default async function Home() {
           </div>
 
           {session ? (
-            <form action={logout}>
-              <button className="inline-flex items-center gap-2 rounded-full bg-neutral-800 px-5 py-3 text-sm font-semibold text-white transition hover:bg-neutral-700">
-                Disconnect Spotify
-              </button>
-            </form>
+            <a
+              href="/api/auth/signout"
+              className="inline-flex items-center gap-2 rounded-full bg-neutral-800 px-5 py-3 text-sm font-semibold text-white transition hover:bg-neutral-700"
+            >
+              Disconnect Spotify
+            </a>
           ) : (
-            <ConnectButton action={login} />
+            <ConnectButton href="/api/auth/signin/spotify" />
           )}
         </header>
 
@@ -137,7 +130,7 @@ export default async function Home() {
             <p className="mx-auto max-w-xl text-sm leading-7 text-neutral-400 mb-8">
               Connect your Spotify account to see your top tracks, top artists, and genre breakdown. Invite friends to build a shared music leaderboard.
             </p>
-            <ConnectButton action={login} />
+            <ConnectButton href="/api/auth/signin/spotify" />
           </div>
         )}
       </div>

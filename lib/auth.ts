@@ -1,7 +1,8 @@
+import type { NextAuthOptions } from "next-auth"
 import NextAuth from "next-auth"
 import SpotifyProvider from "next-auth/providers/spotify"
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
+export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
   providers: [
     SpotifyProvider({
@@ -16,7 +17,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (account && profile) {
         token.accessToken = account.access_token
 
-        await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/friends_spotify`, {
+        await fetch(`${process.env.SUPABASE_URL}/rest/v1/friends_spotify`, {
           method: "POST",
           headers: {
             apikey: process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -43,4 +44,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return session
     },
   },
-})
+}
+
+export default NextAuth(authOptions)
