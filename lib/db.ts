@@ -42,5 +42,19 @@ export async function getSavedSpotifyUsers(): Promise<SavedSpotifyUser[]> {
     throw error
   }
 
-  return (data ?? []) as SavedSpotifyUser[]
+  const rows = (data ?? []) as Array<{
+    spotify_id: string
+    email: string | null
+    name: string
+    image: string | null
+    refresh_token: string
+  }>
+
+  return rows.map((row) => ({
+    spotifyId: row.spotify_id,
+    email: row.email,
+    name: row.name,
+    image: row.image,
+    refreshToken: row.refresh_token,
+  }))
 }

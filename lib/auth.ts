@@ -1,6 +1,5 @@
 import NextAuth from "next-auth"
 import SpotifyProvider from "next-auth/providers/spotify"
-import { saveSpotifyUser } from "./db"
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   secret: process.env.NEXTAUTH_SECRET,
@@ -13,28 +12,31 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
-    async jwt({ token, account, profile }) {
-      if (account?.access_token) {
+    async jwt({ token, account, profile }: any) {
+      if (account && profile) {
         token.accessToken = account.access_token
-      }
 
-      if (account?.refresh_token && profile?.id) {
-        try {
-          await saveSpotifyUser({
-            spotifyId: profile.id,
-            email: profile.email ?? null,
-            name: profile.display_name ?? profile.email ?? profile.id,
-            image: profile.images?.[0]?.url ?? null,
-            refreshToken: account.refresh_token,
-          })
-        } catch (error) {
-          console.error("Failed to save Spotify user to Supabase:", error)
-        }
+        await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/friends_spotify`, {
+          method: "POST",
+          headers: {
+            apikey: process.env.SUPABASE_SERVICE_ROLE_KEY!,
+            Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+            "Content-Type": "application/json",
+            Prefer: "resolution=merge-duplicates",
+          },
+          body: JSON.stringify({
+            id: token.sub,
+            display_name: profile.display_name,
+            spotify_id: profile.id,
+            refresh_token: account.refresh_token,
+            avatar_url: profile.images?.[0]?.url || "",
+          }),
+        })
       }
 
       return token
     },
-    async session({ session, token }) {
+    async session({ session, token }: any) {
       if (token.accessToken) {
         session.accessToken = token.accessToken
       }
