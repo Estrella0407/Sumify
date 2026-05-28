@@ -31,5 +31,23 @@ export type SavedSpotifyUser = {
 
 export type SavedSpotifyUserWithTopTracks = SavedSpotifyUser & {
   topTracks: SpotifyTrack[]
+  topArtists: SpotifyArtist[]
+  genreBreakdown: SpotifyGenre[]
+  personality: ListenerPersonality
   error?: string
+}
+
+export type ListenerPersonality = {
+  label: string
+  emoji: string
+  description: string
+  color: string
+}
+
+export type CompatibilityResult = {
+  score: number // 0–100
+  sharedArtists: string[]
+  sharedGenres: string[]
+  verdict: string
+  verdictEmoji: string
 }
