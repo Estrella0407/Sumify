@@ -7,6 +7,8 @@ import type {
   CompatibilityResult,
 } from "../types/spotify"
 
+export type TimeRange = "short_term" | "medium_term" | "long_term"
+
 const SPOTIFY_BASE = "https://api.spotify.com/v1"
 
 async function fetchSpotifyJson(accessToken: string, endpoint: string) {
@@ -37,8 +39,14 @@ export async function refreshSpotifyAccessToken(refreshToken: string): Promise<s
   return payload.access_token
 }
 
-export async function getTopTracks(accessToken: string): Promise<SpotifyTrack[]> {
-  const data = await fetchSpotifyJson(accessToken, "/me/top/tracks?limit=5&time_range=short_term")
+export async function getTopTracks(
+  accessToken: string,
+  timeRange: TimeRange = "short_term"
+): Promise<SpotifyTrack[]> {
+  const data = await fetchSpotifyJson(
+    accessToken,
+    `/me/top/tracks?limit=5&time_range=${timeRange}`
+  )
   return data.items.map((track: any) => ({
     name: track.name,
     artist: track.artists?.[0]?.name ?? "Unknown artist",
@@ -46,16 +54,23 @@ export async function getTopTracks(accessToken: string): Promise<SpotifyTrack[]>
   }))
 }
 
-async function fetchTopArtistsRaw(accessToken: string, limit = 10): Promise<any[]> {
+async function fetchTopArtistsRaw(
+  accessToken: string,
+  limit = 10,
+  timeRange: TimeRange = "short_term"
+): Promise<any[]> {
   const data = await fetchSpotifyJson(
     accessToken,
-    `/me/top/artists?limit=${limit}&time_range=short_term`
+    `/me/top/artists?limit=${limit}&time_range=${timeRange}`
   )
   return data.items ?? []
 }
 
-export async function getTopArtists(accessToken: string): Promise<SpotifyArtist[]> {
-  const artists = await fetchTopArtistsRaw(accessToken, 8)
+export async function getTopArtists(
+  accessToken: string,
+  timeRange: TimeRange = "short_term"
+): Promise<SpotifyArtist[]> {
+  const artists = await fetchTopArtistsRaw(accessToken, 8, timeRange)
   return artists.slice(0, 5).map((artist: any) => ({
     name: artist.name,
     plays: artist.popularity ?? 0,
@@ -63,8 +78,11 @@ export async function getTopArtists(accessToken: string): Promise<SpotifyArtist[
   }))
 }
 
-export async function getGenreBreakdown(accessToken: string): Promise<SpotifyGenre[]> {
-  const artists = await fetchTopArtistsRaw(accessToken, 10)
+export async function getGenreBreakdown(
+  accessToken: string,
+  timeRange: TimeRange = "short_term"
+): Promise<SpotifyGenre[]> {
+  const artists = await fetchTopArtistsRaw(accessToken, 10, timeRange)
   const genreCount = new Map<string, number>()
   artists.forEach((artist: any) => {
     ;(artist.genres ?? []).slice(0, 2).forEach((genre: string) => {
@@ -81,19 +99,24 @@ export async function getGenreBreakdown(accessToken: string): Promise<SpotifyGen
   }))
 }
 
-export async function getPersonalStats(accessToken: string): Promise<SpotifyStats> {
+export async function getPersonalStats(
+  accessToken: string,
+  timeRange: TimeRange = "short_term"
+): Promise<SpotifyStats> {
   const [topTracks, topArtists] = await Promise.all([
-    getTopTracks(accessToken),
-    getTopArtists(accessToken),
+    getTopTracks(accessToken, timeRange),
+    getTopArtists(accessToken, timeRange),
   ])
-  const genreBreakdown = await getGenreBreakdown(accessToken)
+  const genreBreakdown = await getGenreBreakdown(accessToken, timeRange)
   return { topTracks, topArtists, genreBreakdown }
 }
 
-/** Fetches tracks + artists + genres for a saved user given their refresh token */
-export async function getFullStatsForRefreshToken(refreshToken: string): Promise<SpotifyStats> {
+export async function getFullStatsForRefreshToken(
+  refreshToken: string,
+  timeRange: TimeRange = "short_term"
+): Promise<SpotifyStats> {
   const accessToken = await refreshSpotifyAccessToken(refreshToken)
-  return getPersonalStats(accessToken)
+  return getPersonalStats(accessToken, timeRange)
 }
 
 // ── Personality ────────────────────────────────────────────────────────────────
@@ -106,7 +129,7 @@ const PERSONALITIES: Array<{
   color: string
 }> = [
   {
-    genres: ["k-pop", "korean pop", "k-rap", "korean r&b"],
+    genres: ["k-pop", "korean pop", "k-rap", "korean r&b", "k-pop girl group", "korean indie", "idol"],
     label: "K-Pop Stan",
     emoji: "⭐",
     description: "You live for the choreos, the fancams, and the comebacks.",
@@ -170,37 +193,24 @@ const DEFAULT_PERSONALITY: ListenerPersonality = {
   color: "#1DB954",
 }
 
-const normalizeGenreName = (value: string) =>
-  value
-    .toLowerCase()
-    .replace(/[-_]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .replace(/\bkorean pop\b|\bk-pop\b|\bkpop\b/g, "kpop")
-    .replace(/\bkorean r&b\b|\bkorean rb\b|\bk-r&b\b|\bk-rb\b/g, "krnb")
+export function derivePersonality(
+  genres: SpotifyGenre[],
+  artists: SpotifyArtist[] = []
+): ListenerPersonality {
+  const allGenres = [
+    ...genres.map((g) => g.name.toLowerCase()),
+    ...artists.flatMap((a) => a.genres.map((g) => g.toLowerCase())),
+  ]
 
-const genreMatches = (genreA: string, genreB: string) => {
-  const a = normalizeGenreName(genreA)
-  const b = normalizeGenreName(genreB)
-  return a === b || a.includes(b) || b.includes(a)
-}
-
-export function derivePersonality(genres: SpotifyGenre[]): ListenerPersonality {
-  const topGenreNames = genres.map((g) => normalizeGenreName(g.name))
   let bestMatch = { personality: DEFAULT_PERSONALITY, score: 0 }
 
   for (const p of PERSONALITIES) {
     const score = p.genres.reduce((acc, g) => {
-      return acc + topGenreNames.filter((tg) => genreMatches(tg, g)).length
+      return acc + allGenres.filter((tg) => tg.includes(g) || g.includes(tg)).length
     }, 0)
     if (score > bestMatch.score) {
       bestMatch = {
-        personality: {
-          label: p.label,
-          emoji: p.emoji,
-          description: p.description,
-          color: p.color,
-        },
+        personality: { label: p.label, emoji: p.emoji, description: p.description, color: p.color },
         score,
       }
     }
@@ -245,9 +255,7 @@ export function computeCompatibility(
       : 0
 
   const raw = artistScore * 0.6 + genreScore * 0.4
-  const score = Math.round(
-    Math.min(100, raw * 180 + (sharedArtists.length > 0 ? 15 : 0))
-  )
+  const score = Math.round(Math.min(100, raw * 180 + (sharedArtists.length > 0 ? 15 : 0)))
 
   const { verdict, emoji } = VERDICTS.find((v) => score >= v.min)!
   return { score, sharedArtists, sharedGenres, verdict, verdictEmoji: emoji }

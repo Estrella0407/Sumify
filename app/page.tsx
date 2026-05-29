@@ -1,9 +1,11 @@
+import { Suspense } from "react"
 import { getServerSession } from "next-auth"
 import { authOptions } from "../lib/auth"
 import {
   getPersonalStats,
   getFullStatsForRefreshToken,
   derivePersonality,
+  type TimeRange,
 } from "../lib/spotify-final"
 import { getSavedSpotifyUsers } from "../lib/db"
 import { ConnectButton } from "./components/ConnectButton"
@@ -11,23 +13,46 @@ import { GroupLeaderboard } from "./components/GroupLeaderboard"
 import { ProfilePanel } from "./components/ProfilePanel"
 import { CompatibilityCard } from "./components/CompatibilityCard"
 import { PersonalityBadge } from "./components/PersonalityBadge"
+import { TimeRangeFilter } from "./components/TimeRangeFilter"
 import type {
   SavedSpotifyUser,
   SavedSpotifyUserWithTopTracks,
   SpotifyStats,
 } from "../types/spotify"
 
-export default async function Home() {
+const RANGE_LABELS: Record<TimeRange, string> = {
+  short_term: "Last 4 weeks",
+  medium_term: "Last 6 months",
+  long_term: "All time",
+}
+
+function isValidRange(value: string | undefined): value is TimeRange {
+  return value === "short_term" || value === "medium_term" || value === "long_term"
+}
+
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: { range?: string }
+}) {
+  const timeRange: TimeRange = isValidRange(searchParams.range)
+    ? searchParams.range
+    : "short_term"
+
   const session = await getServerSession(authOptions)
   const accessToken = (session as any)?.accessToken as string | undefined
-  const stats: SpotifyStats | null = accessToken ? await getPersonalStats(accessToken) : null
-  const savedUsers: SavedSpotifyUser[] = await getSavedSpotifyUsers()
+
+  const stats: SpotifyStats | null = accessToken
+    ? await getPersonalStats(accessToken, timeRange).catch(() => null)
+    : null
+
+  const savedUsers: SavedSpotifyUser[] = await getSavedSpotifyUsers().catch(() => [])
 
   const savedUserColumns: SavedSpotifyUserWithTopTracks[] = await Promise.all(
     savedUsers.map(async (user) => {
       try {
-        const fullStats = await getFullStatsForRefreshToken(user.refreshToken)
-        const personality = derivePersonality(fullStats.genreBreakdown)
+        const fullStats = await getFullStatsForRefreshToken(user.refreshToken, timeRange)
+        const personality = derivePersonality(fullStats.genreBreakdown, fullStats.topArtists)
         return {
           ...user,
           topTracks: fullStats.topTracks,
@@ -48,7 +73,9 @@ export default async function Home() {
     })
   )
 
-  const myPersonality = stats ? derivePersonality(stats.genreBreakdown) : null
+  const myPersonality = stats
+    ? derivePersonality(stats.genreBreakdown, stats.topArtists)
+    : null
 
   const myProfile =
     stats && session
@@ -84,7 +111,7 @@ export default async function Home() {
         style={{ zIndex: 1 }}
       >
         {/* Header */}
-        <header className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between mb-14">
+        <header className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between mb-10">
           <div>
             <p
               className="text-xs font-bold tracking-widest uppercase mb-3"
@@ -125,7 +152,18 @@ export default async function Home() {
 
         {session ? (
           <>
-            {/* Your personality */}
+            {/* Time range filter + label */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-8">
+              <p className="text-sm" style={{ color: "#444" }}>
+                Showing data for{" "}
+                <span style={{ color: "#e0e0e0" }}>{RANGE_LABELS[timeRange]}</span>
+              </p>
+              <Suspense>
+                <TimeRangeFilter />
+              </Suspense>
+            </div>
+
+            {/* Personality */}
             {myPersonality && (
               <div className="mb-8">
                 <PersonalityBadge personality={myPersonality} name={session.user?.name ?? "You"} />
@@ -219,7 +257,7 @@ export default async function Home() {
                               {user.name}
                             </p>
                             <p className="text-xs" style={{ color: "#444" }}>
-                              Spotify connected
+                              {RANGE_LABELS[timeRange]}
                             </p>
                           </div>
                         </div>
