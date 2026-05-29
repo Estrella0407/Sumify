@@ -106,7 +106,11 @@ async function enrichArtistsWithGenres(
   if (artists.length === 0) return artists
   try {
     const ids = artists.map((a: any) => a.id).join(",")
+    console.log("Enriching artist IDs:", ids)
     const data = await fetchSpotifyJson(accessToken, `/artists?ids=${ids}`)
+    console.log("Raw enriched artists:", JSON.stringify(
+      data.artists?.map((a: any) => ({ id: a.id, name: a.name, genres: a.genres }))
+    ))
     const genreMap = new Map<string, string[]>()
     ;(data.artists ?? []).forEach((a: any) => {
       genreMap.set(a.id, a.genres ?? [])
@@ -117,7 +121,7 @@ async function enrichArtistsWithGenres(
     }))
   } catch (e) {
     console.error("enrichArtistsWithGenres failed:", e)
-    return artists // fall back to original
+    return artists
   }
 }
 
