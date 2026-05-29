@@ -6,6 +6,7 @@ import type {
   ListenerPersonality,
   CompatibilityResult,
 } from "../types/spotify"
+import { enrichArtistsWithExternalGenres } from "./genres"
 
 export type TimeRange = "short_term" | "medium_term" | "long_term"
 
@@ -70,38 +71,27 @@ async function fetchRawArtists(
     accessToken,
     `/me/top/artists?limit=${limit}&time_range=${timeRange}`
   )
-
-  console.log(
-    "artist keys",
-    Object.keys(data.items?.[0] ?? {})
-  )
-
   return data.items ?? []
 }
 
-function rawArtistsToTopArtists(raw: any[]): SpotifyArtist[] {
-  const artists = raw.slice(0, 5).map((artist: any) => ({
-    name: artist.name,
-    genres: artist.genres ?? []
+function buildTopArtists(enriched: Array<{ name: string; genres: string[] }>, raw: any[]): SpotifyArtist[] {
+  return enriched.slice(0, 5).map((a, i) => ({
+    name: a.name,
+    plays: raw[i]?.popularity ?? 0,
+    genres: a.genres,
   }))
-
-  console.log("mapped top artists", artists)
-
-  return artists
 }
 
-function rawArtistsToGenreBreakdown(raw: any[]): SpotifyGenre[] {
+function buildGenreBreakdown(enriched: Array<{ name: string; genres: string[] }>): SpotifyGenre[] {
   const genreCount = new Map<string, number>()
-  raw.forEach((artist: any) => {
-    ;(artist.genres ?? []).forEach((genre: string) => {
+  enriched.forEach((artist) => {
+    artist.genres.slice(0, 3).forEach((genre) => {
       genreCount.set(genre, (genreCount.get(genre) ?? 0) + 1)
     })
   })
-  const allEntries = Array.from(genreCount.entries()).sort(
-    (a, b) => b[1] - a[1]
-  )
-  const total = allEntries.reduce((sum, [, count]) => sum + count, 0) || 1
-  return allEntries.slice(0, 5).map(([name, count]) => ({
+  const entries = Array.from(genreCount.entries()).sort((a, b) => b[1] - a[1]).slice(0, 5)
+  const total = entries.reduce((sum, [, c]) => sum + c, 0) || 1
+  return entries.map(([name, count]) => ({
     name,
     share: Math.round((count / total) * 100),
   }))
@@ -115,11 +105,16 @@ export async function getPersonalStats(
     getTopTracks(accessToken, timeRange),
     fetchRawArtists(accessToken, timeRange, 10),
   ])
-  return {
-    topTracks,
-    topArtists: rawArtistsToTopArtists(rawArtists),
-    genreBreakdown: rawArtistsToGenreBreakdown(rawArtists),
-  }
+
+  // Enrich with Last.fm / TheAudioDB genres
+  const enriched = await enrichArtistsWithExternalGenres(
+    rawArtists.map((a: any) => ({ name: a.name, genres: a.genres ?? [] }))
+  )
+
+  const topArtists = buildTopArtists(enriched, rawArtists)
+  const genreBreakdown = buildGenreBreakdown(enriched)
+
+  return { topTracks, topArtists, genreBreakdown }
 }
 
 export async function getFullStatsForRefreshToken(
@@ -140,11 +135,7 @@ const PERSONALITIES: Array<{
   color: string
 }> = [
   {
-    genres: [
-      "k-pop", "korean pop", "k-rap", "korean r&b",
-      "k-pop girl group", "k-pop boy group", "korean indie",
-      "idol", "korean pop", "k-indie",
-    ],
+    genres: ["k-pop", "korean pop", "k-rap", "korean r&b", "k-pop girl group", "k-pop boy group", "korean indie", "idol", "k-indie"],
     label: "K-Pop Stan",
     emoji: "⭐",
     description: "You live for the choreos, the fancams, and the comebacks.",
@@ -208,48 +199,26 @@ export const DEFAULT_PERSONALITY: ListenerPersonality = {
   color: "#1DB954",
 }
 
-function genreSimilarity(a: string, b: string) {
-  if (a === b) return 3
-  if (a.includes(b) || b.includes(a)) return 1
-  return 0
-}
-
 export function derivePersonality(
   genres: SpotifyGenre[],
   artists: SpotifyArtist[] = []
 ): ListenerPersonality {
   const allGenres = [
-    ...new Set(
-      artists.flatMap((a) =>
-        (a.genres ?? []).map((g) => g.toLowerCase())
-      )
-    ),
+    ...genres.map((g) => g.name.toLowerCase()),
+    ...artists.flatMap((a) => (a.genres ?? []).map((g: string) => g.toLowerCase())),
   ]
 
   if (allGenres.length === 0) return DEFAULT_PERSONALITY
 
-  let bestMatch = {
-    personality: DEFAULT_PERSONALITY,
-    score: 0,
-  }
+  let bestMatch = { personality: DEFAULT_PERSONALITY, score: 0 }
 
   for (const p of PERSONALITIES) {
-    let score = 0
-
-    for (const targetGenre of allGenres) {
-      for (const personalityGenre of p.genres) {
-        score += genreSimilarity(targetGenre, personalityGenre)
-      }
-    }
-
+    const score = p.genres.reduce((acc, g) => {
+      return acc + allGenres.filter((tg) => tg.includes(g) || g.includes(tg)).length
+    }, 0)
     if (score > bestMatch.score) {
       bestMatch = {
-        personality: {
-          label: p.label,
-          emoji: p.emoji,
-          description: p.description,
-          color: p.color,
-        },
+        personality: { label: p.label, emoji: p.emoji, description: p.description, color: p.color },
         score,
       }
     }
@@ -294,9 +263,7 @@ export function computeCompatibility(
       : 0
 
   const raw = artistScore * 0.6 + genreScore * 0.4
-  const score = Math.round(
-    Math.min(100, raw * 100 + sharedArtists.length * 5)
-  )
+  const score = Math.round(Math.min(100, raw * 180 + (sharedArtists.length > 0 ? 15 : 0)))
 
   const { verdict, emoji } = VERDICTS.find((v) => score >= v.min)!
   return { score, sharedArtists, sharedGenres, verdict, verdictEmoji: emoji }
