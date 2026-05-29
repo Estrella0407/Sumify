@@ -2,6 +2,7 @@ import { Suspense } from "react"
 import Link from "next/link"
 import { getServerSession } from "next-auth"
 import { authOptions } from "../lib/auth"
+import { CurrentUserProvider } from "../lib/current-user-provider"
 import {
   getPersonalStats,
   getFullStatsForRefreshToken,
@@ -141,179 +142,181 @@ export default async function Home({
           )}
         </header>
 
-        {session ? (
-          <>
-            {/* Page title */}
-            <div className="mb-8">
-              <h1
-                className="text-4xl sm:text-5xl font-black tracking-tight leading-none mb-3"
-                style={{ fontFamily: "Syne, sans-serif" }}
-              >
-                Compare music{" "}
-                <span style={{ color: "#1DB954" }}>tastes</span>.
-              </h1>
-              <p className="text-sm" style={{ color: "#555" }}>
-                Your listening data, your crew's — side by side.
-              </p>
-            </div>
-
-            {/* Time range + personality row */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-              {myPersonality && (
-                <PersonalityBadge personality={myPersonality} name={session.user?.name ?? "You"} compact />
-              )}
-              <div className="flex items-center gap-3 sm:ml-auto">
-                <p className="text-xs" style={{ color: "#444" }}>
-                  {RANGE_LABELS[timeRange]}
+        {session && myProfile ? (
+          <CurrentUserProvider value={myProfile}>
+            <>
+              {/* Page title */}
+              <div className="mb-8">
+                <h1
+                  className="text-4xl sm:text-5xl font-black tracking-tight leading-none mb-3"
+                  style={{ fontFamily: "Syne, sans-serif" }}
+                >
+                  Compare music{" "}
+                  <span style={{ color: "#1DB954" }}>tastes</span>.
+                </h1>
+                <p className="text-sm" style={{ color: "#555" }}>
+                  Your listening data, your crew's — side by side.
                 </p>
-                <Suspense>
-                  <TimeRangeFilter />
-                </Suspense>
               </div>
-            </div>
 
-            {/* ── Profile panel — full width, 3 columns inside ── */}
-            <ProfilePanel session={session} stats={stats} />
-
-            {/* ── Group session + comparisons ── */}
-            <div className="mt-8 flex flex-col gap-8">
-
-              {/* Connected members */}
-              <GroupLeaderboard
-                savedUsers={savedUserColumns}
-              />
-
-              {/* Compatibility */}
-              {myProfile && savedUserColumns.some((u) => !u.error) && (
-                <div>
-                  <div className="mb-4">
-                    <p
-                      className="text-xs font-bold tracking-widest uppercase mb-1"
-                      style={{ color: "#1DB954", fontFamily: "Syne, sans-serif" }}
-                    >
-                      Music compatibility
-                    </p>
-                    <h2
-                      className="text-2xl font-bold"
-                      style={{ fontFamily: "Syne, sans-serif" }}
-                    >
-                      How do you match up?
-                    </h2>
-                  </div>
-                  <div className="grid gap-5 sm:grid-cols-2">
-                    {savedUserColumns
-                      .filter((u) => !u.error)
-                      .map((friend) => (
-                        <CompatibilityCard
-                          key={friend.spotifyId}
-                          friend={friend}
-                        />
-                      ))}
-                  </div>
+              {/* Time range + personality row */}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+                {myPersonality && (
+                  <PersonalityBadge personality={myPersonality} name={session.user?.name ?? "You"} compact />
+                )}
+                <div className="flex items-center gap-3 sm:ml-auto">
+                  <p className="text-xs" style={{ color: "#444" }}>
+                    {RANGE_LABELS[timeRange]}
+                  </p>
+                  <Suspense>
+                    <TimeRangeFilter />
+                  </Suspense>
                 </div>
-              )}
+              </div>
 
-              {/* Friend columns */}
-              {savedUserColumns.length > 0 && (
-                <div>
-                  <div className="mb-4">
-                    <p
-                      className="text-xs font-bold tracking-widest uppercase mb-1"
-                      style={{ color: "#1DB954", fontFamily: "Syne, sans-serif" }}
-                    >
-                      Connected friends
-                    </p>
-                    <h2
-                      className="text-2xl font-bold"
-                      style={{ fontFamily: "Syne, sans-serif" }}
-                    >
-                      Top tracks for every user
-                    </h2>
-                  </div>
-                  <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-                    {savedUserColumns.map((user) => (
-                      <article
-                        key={user.spotifyId}
-                        className="rounded-2xl border p-5 flex flex-col gap-4"
-                        style={{ background: "#111", borderColor: "rgba(255,255,255,0.07)" }}
+              {/* ── Profile panel — full width, 3 columns inside ── */}
+              <ProfilePanel session={session} stats={stats} />
+
+              {/* ── Group session + comparisons ── */}
+              <div className="mt-8 flex flex-col gap-8">
+
+                {/* Connected members */}
+                <GroupLeaderboard
+                  savedUsers={savedUserColumns}
+                />
+
+                {/* Compatibility */}
+                {myProfile && savedUserColumns.some((u) => !u.error) && (
+                  <div>
+                    <div className="mb-4">
+                      <p
+                        className="text-xs font-bold tracking-widest uppercase mb-1"
+                        style={{ color: "#1DB954", fontFamily: "Syne, sans-serif" }}
                       >
-                        <div className="flex items-center gap-3">
-                          {user.image ? (
-                            <img
-                              src={user.image}
-                              alt={user.name}
-                              className="h-11 w-11 rounded-xl object-cover shrink-0"
-                            />
-                          ) : (
-                            <div
-                              className="h-11 w-11 rounded-xl flex items-center justify-center shrink-0 text-sm font-bold"
-                              style={{ background: "#1a1a1a", color: "#333" }}
-                            >
-                              {user.name.charAt(0).toUpperCase()}
-                            </div>
-                          )}
-                          <div className="min-w-0 flex-1">
-                            <p
-                              className="font-semibold truncate"
-                              style={{ color: "#e0e0e0", fontFamily: "Syne, sans-serif" }}
-                            >
-                              {user.name}
-                            </p>
-                            <p className="text-xs" style={{ color: "#444" }}>
-                              {RANGE_LABELS[timeRange]}
-                            </p>
-                          </div>
-                        </div>
-
-                        {!user.error && (
-                          <PersonalityBadge
-                            personality={user.personality}
-                            name={user.name}
-                            compact
+                        Music compatibility
+                      </p>
+                      <h2
+                        className="text-2xl font-bold"
+                        style={{ fontFamily: "Syne, sans-serif" }}
+                      >
+                        How do you match up?
+                      </h2>
+                    </div>
+                    <div className="grid gap-5 sm:grid-cols-2">
+                      {savedUserColumns
+                        .filter((u) => !u.error)
+                        .map((friend) => (
+                          <CompatibilityCard
+                            key={friend.spotifyId}
+                            friend={friend}
                           />
-                        )}
-
-                        {user.error ? (
-                          <p className="text-sm" style={{ color: "#c0392b" }}>
-                            {user.error}
-                          </p>
-                        ) : user.topTracks.length ? (
-                          <div className="flex flex-col gap-1">
-                            {user.topTracks.map((track, index) => (
-                              <div
-                                key={`${user.spotifyId}-${track.name}-${index}`}
-                                className="flex items-center gap-2.5 rounded-lg px-2 py-2"
-                                style={{ background: "#151515" }}
-                              >
-                                <span
-                                  className="text-xs w-4 shrink-0 text-center"
-                                  style={{ color: "#333", fontFamily: "Syne, sans-serif" }}
-                                >
-                                  {index + 1}
-                                </span>
-                                <div className="min-w-0">
-                                  <p className="truncate text-sm font-medium" style={{ color: "#ccc" }}>
-                                    {track.name}
-                                  </p>
-                                  <p className="truncate text-xs" style={{ color: "#444" }}>
-                                    {track.artist}
-                                  </p>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="text-sm" style={{ color: "#444" }}>
-                            No saved top tracks yet.
-                          </p>
-                        )}
-                      </article>
-                    ))}
+                        ))}
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
-          </>
+                )}
+
+                {/* Friend columns */}
+                {savedUserColumns.length > 0 && (
+                  <div>
+                    <div className="mb-4">
+                      <p
+                        className="text-xs font-bold tracking-widest uppercase mb-1"
+                        style={{ color: "#1DB954", fontFamily: "Syne, sans-serif" }}
+                      >
+                        Connected friends
+                      </p>
+                      <h2
+                        className="text-2xl font-bold"
+                        style={{ fontFamily: "Syne, sans-serif" }}
+                      >
+                        Top tracks for every user
+                      </h2>
+                    </div>
+                    <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                      {savedUserColumns.map((user) => (
+                        <article
+                          key={user.spotifyId}
+                          className="rounded-2xl border p-5 flex flex-col gap-4"
+                          style={{ background: "#111", borderColor: "rgba(255,255,255,0.07)" }}
+                        >
+                          <div className="flex items-center gap-3">
+                            {user.image ? (
+                              <img
+                                src={user.image}
+                                alt={user.name}
+                                className="h-11 w-11 rounded-xl object-cover shrink-0"
+                              />
+                            ) : (
+                              <div
+                                className="h-11 w-11 rounded-xl flex items-center justify-center shrink-0 text-sm font-bold"
+                                style={{ background: "#1a1a1a", color: "#333" }}
+                              >
+                                {user.name.charAt(0).toUpperCase()}
+                              </div>
+                            )}
+                            <div className="min-w-0 flex-1">
+                              <p
+                                className="font-semibold truncate"
+                                style={{ color: "#e0e0e0", fontFamily: "Syne, sans-serif" }}
+                              >
+                                {user.name}
+                              </p>
+                              <p className="text-xs" style={{ color: "#444" }}>
+                                {RANGE_LABELS[timeRange]}
+                              </p>
+                            </div>
+                          </div>
+
+                          {!user.error && (
+                            <PersonalityBadge
+                              personality={user.personality}
+                              name={user.name}
+                              compact
+                            />
+                          )}
+
+                          {user.error ? (
+                            <p className="text-sm" style={{ color: "#c0392b" }}>
+                              {user.error}
+                            </p>
+                          ) : user.topTracks.length ? (
+                            <div className="flex flex-col gap-1">
+                              {user.topTracks.map((track, index) => (
+                                <div
+                                  key={`${user.spotifyId}-${track.name}-${index}`}
+                                  className="flex items-center gap-2.5 rounded-lg px-2 py-2"
+                                  style={{ background: "#151515" }}
+                                >
+                                  <span
+                                    className="text-xs w-4 shrink-0 text-center"
+                                    style={{ color: "#333", fontFamily: "Syne, sans-serif" }}
+                                  >
+                                    {index + 1}
+                                  </span>
+                                  <div className="min-w-0">
+                                    <p className="truncate text-sm font-medium" style={{ color: "#ccc" }}>
+                                      {track.name}
+                                    </p>
+                                    <p className="truncate text-xs" style={{ color: "#444" }}>
+                                      {track.artist}
+                                    </p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-sm" style={{ color: "#444" }}>
+                              No saved top tracks yet.
+                            </p>
+                          )}
+                        </article>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </>
+          </CurrentUserProvider>
         ) : (
           /* Landing */
           <div className="flex flex-col items-center justify-center min-h-[70vh] text-center">
