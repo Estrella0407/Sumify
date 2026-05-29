@@ -186,7 +186,7 @@ const PERSONALITIES: Array<{
   },
 ]
 
-const DEFAULT_PERSONALITY: ListenerPersonality = {
+export const DEFAULT_PERSONALITY: ListenerPersonality = {
   label: "Genre Nomad",
   emoji: "🌍",
   description: "You defy categories. Your playlist is a world tour.",

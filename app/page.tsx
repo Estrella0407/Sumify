@@ -5,6 +5,7 @@ import {
   getPersonalStats,
   getFullStatsForRefreshToken,
   derivePersonality,
+  DEFAULT_PERSONALITY,
   type TimeRange,
 } from "../lib/spotify-final"
 import { getSavedSpotifyUsers } from "../lib/db"
@@ -29,6 +30,8 @@ const RANGE_LABELS: Record<TimeRange, string> = {
 function isValidRange(value: string | undefined): value is TimeRange {
   return value === "short_term" || value === "medium_term" || value === "long_term"
 }
+
+export const dynamic = "force-dynamic"
 
 export default async function Home({
   searchParams,
@@ -60,13 +63,14 @@ export default async function Home({
           genreBreakdown: fullStats.genreBreakdown,
           personality,
         }
-      } catch {
+      } catch (e) {
+          console.error("Failed to load stats for", user.name, e)
         return {
           ...user,
           topTracks: [],
           topArtists: [],
           genreBreakdown: [],
-          personality: derivePersonality([]),
+          personality: DEFAULT_PERSONALITY,
           error: "Unable to load tracks. Token may need refresh.",
         }
       }

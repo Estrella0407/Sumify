@@ -32,6 +32,7 @@ export const authOptions: NextAuthOptions = {
       try {
         const response = await fetch("https://accounts.spotify.com/api/token", {
           method: "POST",
+          cache: "no-store",
           headers: {
             Authorization: `Basic ${Buffer.from(
               `${process.env.AUTH_SPOTIFY_ID}:${process.env.AUTH_SPOTIFY_SECRET}`
