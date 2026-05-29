@@ -181,8 +181,6 @@ export default async function Home({
               {/* Connected members */}
               <GroupLeaderboard
                 savedUsers={savedUserColumns}
-                currentUserName={session.user?.name ?? "You"}
-                currentUserImage={session.user?.image ?? null}
               />
 
               {/* Compatibility */}
@@ -208,7 +206,6 @@ export default async function Home({
                       .map((friend) => (
                         <CompatibilityCard
                           key={friend.spotifyId}
-                          currentUser={myProfile}
                           friend={friend}
                         />
                       ))}

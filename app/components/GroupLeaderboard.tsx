@@ -1,5 +1,6 @@
 import { Users } from "lucide-react"
 import type { SavedSpotifyUserWithTopTracks } from "../../types/spotify"
+import { useCurrentUser } from "../../lib/current-user-provider"
 
 interface GroupLeaderboardProps {
   savedUsers?: SavedSpotifyUserWithTopTracks[]
@@ -9,10 +10,13 @@ interface GroupLeaderboardProps {
 
 export function GroupLeaderboard({
   savedUsers = [],
-  currentUserName,
-  currentUserImage,
 }: GroupLeaderboardProps) {
-  const connectedUsers = savedUsers.filter((u) => !u.error)
+  const currentUser = useCurrentUser()
+  const connectedUsers = savedUsers.filter(
+    (u) =>
+      !u.error &&
+      u.spotifyId !== currentUser?.id
+  )
   const totalMembers = connectedUsers.length + 1
 
   return (
@@ -50,10 +54,10 @@ export function GroupLeaderboard({
           style={{ background: "#151515" }}
         >
           <div className="h-2 w-2 rounded-full shrink-0" style={{ background: "#1DB954" }} />
-          {currentUserImage ? (
+          {currentUser?.image ? (
             <img
-              src={currentUserImage}
-              alt={currentUserName ?? "You"}
+              src={currentUser.image}
+              alt={currentUser.name ?? "You"}
               className="h-7 w-7 rounded-lg object-cover shrink-0"
             />
           ) : (
@@ -61,11 +65,11 @@ export function GroupLeaderboard({
               className="h-7 w-7 rounded-lg flex items-center justify-center shrink-0 text-xs font-bold"
               style={{ background: "#222", color: "#555" }}
             >
-              {currentUserName?.charAt(0).toUpperCase() ?? "Y"}
+              {currentUser.name?.charAt(0).toUpperCase() ?? "Y"}
             </div>
           )}
           <p className="text-sm font-medium flex-1 truncate" style={{ color: "#e0e0e0" }}>
-            {currentUserName ?? "You"}
+            {currentUser.name ?? "You"}
           </p>
           <span
             className="text-xs px-2 py-0.5 rounded-md font-bold shrink-0"

@@ -16,40 +16,36 @@ const blockedGenres = new Set([
   "american",
 ])
 
-function normalizeGenre(genre: string): string {
-  const g = genre.toLowerCase().trim()
+function normalizeGenre(raw: string): string {
+  const g = raw
+    .trim()
+    .toLowerCase()
+    .replace(/[_]/g, " ")
+    .replace(/\s+/g, " ")
 
   const aliases: Record<string, string> = {
     "kpop": "k-pop",
     "k pop": "k-pop",
+    "k-pop": "k-pop",
     "korean pop": "k-pop",
 
     "jpop": "j-pop",
     "j pop": "j-pop",
+    "j-pop": "j-pop",
     "japanese pop": "j-pop",
 
     "hip hop": "hip-hop",
     "hiphop": "hip-hop",
 
     "r&b": "rnb",
-    "rnb/soul": "rnb",
     "rhythm and blues": "rnb",
-
-    "dance-pop": "dance pop",
-    "dancepop": "dance pop",
-
-    "indie pop": "indie",
-    "indie rock": "indie",
-
-    "electro pop": "electropop",
-    "electro-pop": "electropop",
   }
 
   return aliases[g] || g
 }
 
 function normalizeGenres(genres: string[]): string[] {
-  return [...new Set(genres.map(normalizeGenre).filter(Boolean))]
+  return [...new Set(genres.map(normalizeGenre))]
 }
 
 // ── Cache ──────────────────────────────────────────────────────────────────────

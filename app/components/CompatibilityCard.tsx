@@ -1,14 +1,8 @@
 import type { CompatibilityResult, ListenerPersonality, SavedSpotifyUserWithTopTracks } from "../../types/spotify"
 import { computeCompatibility } from "../../lib/spotify-final"
+import { useCurrentUser } from "../../lib/current-user-provider"
 
 interface CompatibilityCardProps {
-  currentUser: {
-    name: string
-    image: string | null
-    topArtists: import("../../types/spotify").SpotifyArtist[]
-    genreBreakdown: import("../../types/spotify").SpotifyGenre[]
-    personality: ListenerPersonality
-  }
   friend: SavedSpotifyUserWithTopTracks
 }
 
@@ -66,11 +60,12 @@ function ScoreRing({ score, color }: { score: number; color: string }) {
   )
 }
 
-export function CompatibilityCard({ currentUser, friend }: CompatibilityCardProps) {
-  if (currentUser.name === friend.name) {
+export function CompatibilityCard({ friend }: CompatibilityCardProps) {
+  const currentUser = useCurrentUser()
+  if (currentUser.id && friend.spotifyId === currentUser.id) {
     return null
   }
-  
+
   const result = computeCompatibility(
     { topArtists: currentUser.topArtists, genreBreakdown: currentUser.genreBreakdown },
     { topArtists: friend.topArtists, genreBreakdown: friend.genreBreakdown }
