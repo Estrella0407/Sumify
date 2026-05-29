@@ -61,7 +61,6 @@ export async function getTopTracks(
   }))
 }
 
-/** Fetches raw artist objects from Spotify — single source of truth */
 async function fetchRawArtists(
   accessToken: string,
   timeRange: TimeRange = "short_term",
@@ -77,7 +76,6 @@ async function fetchRawArtists(
 function rawArtistsToTopArtists(raw: any[]): SpotifyArtist[] {
   return raw.slice(0, 5).map((artist: any) => ({
     name: artist.name,
-    plays: artist.popularity ?? 0,
     genres: artist.genres ?? [],
   }))
 }
@@ -85,15 +83,15 @@ function rawArtistsToTopArtists(raw: any[]): SpotifyArtist[] {
 function rawArtistsToGenreBreakdown(raw: any[]): SpotifyGenre[] {
   const genreCount = new Map<string, number>()
   raw.forEach((artist: any) => {
-    ;(artist.genres ?? []).slice(0, 3).forEach((genre: string) => {
+    ;(artist.genres ?? []).forEach((genre: string) => {
       genreCount.set(genre, (genreCount.get(genre) ?? 0) + 1)
     })
   })
-  const entries = Array.from(genreCount.entries())
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
-  const total = entries.reduce((sum, [, c]) => sum + c, 0) || 1
-  return entries.map(([name, count]) => ({
+  const allEntries = Array.from(genreCount.entries()).sort(
+    (a, b) => b[1] - a[1]
+  )
+  const total = allEntries.reduce((sum, [, count]) => sum + count, 0) || 1
+  return allEntries.slice(0, 5).map(([name, count]) => ({
     name,
     share: Math.round((count / total) * 100),
   }))
@@ -107,7 +105,6 @@ export async function getPersonalStats(
     getTopTracks(accessToken, timeRange),
     fetchRawArtists(accessToken, timeRange, 10),
   ])
-
   return {
     topTracks,
     topArtists: rawArtistsToTopArtists(rawArtists),
@@ -120,7 +117,6 @@ export async function getFullStatsForRefreshToken(
   timeRange: TimeRange = "short_term"
 ): Promise<SpotifyStats> {
   const accessToken = await refreshSpotifyAccessToken(refreshToken)
-
   return getPersonalStats(accessToken, timeRange)
 }
 
@@ -202,24 +198,40 @@ export const DEFAULT_PERSONALITY: ListenerPersonality = {
   color: "#1DB954",
 }
 
+function genreSimilarity(a: string, b: string) {
+  if (a === b) return 3
+  if (a.includes(b) || b.includes(a)) return 1
+  return 0
+}
+
 export function derivePersonality(
   genres: SpotifyGenre[],
   artists: SpotifyArtist[] = []
 ): ListenerPersonality {
-  // Collect ALL genre strings from both sources
   const allGenres = [
-    ...genres.map((g) => g.name.toLowerCase()),
-    ...artists.flatMap((a) => (a.genres ?? []).map((g: string) => g.toLowerCase())),
+    ...new Set(
+      artists.flatMap((a) =>
+        (a.genres ?? []).map((g) => g.toLowerCase())
+      )
+    ),
   ]
 
   if (allGenres.length === 0) return DEFAULT_PERSONALITY
 
-  let bestMatch = { personality: DEFAULT_PERSONALITY, score: 0 }
+  let bestMatch = {
+    personality: DEFAULT_PERSONALITY,
+    score: 0,
+  }
 
   for (const p of PERSONALITIES) {
-    const score = p.genres.reduce((acc, g) => {
-      return acc + allGenres.filter((tg) => tg.includes(g) || g.includes(tg)).length
-    }, 0)
+    let score = 0
+
+    for (const targetGenre of allGenres) {
+      for (const personalityGenre of p.genres) {
+        score += genreSimilarity(targetGenre, personalityGenre)
+      }
+    }
+
     if (score > bestMatch.score) {
       bestMatch = {
         personality: {
@@ -273,7 +285,7 @@ export function computeCompatibility(
 
   const raw = artistScore * 0.6 + genreScore * 0.4
   const score = Math.round(
-    Math.min(100, raw * 180 + (sharedArtists.length > 0 ? 15 : 0))
+    Math.min(100, raw * 100 + sharedArtists.length * 5)
   )
 
   const { verdict, emoji } = VERDICTS.find((v) => score >= v.min)!

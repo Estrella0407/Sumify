@@ -6,7 +6,6 @@ export type SpotifyTrack = {
 
 export type SpotifyArtist = {
   name: string
-  plays: number
   genres: string[]
 }
 
