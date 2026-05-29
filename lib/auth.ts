@@ -13,31 +13,48 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async jwt({ token, account, profile }: any) {
+    async jwt({ token, account, profile }) {
+      // First sign in
       if (account && profile) {
         token.accessToken = account.access_token
-        token.spotifyId = profile.id
+        token.refreshToken = account.refresh_token
+        token.expiresAt = Date.now() + (account.expires_in as number) * 1000
+        token.spotifyId = (profile as any).id
+        return token
+      }
 
-        await fetch(`${process.env.SUPABASE_URL}/rest/v1/spotify_users`, {
+      // Token still valid
+      if (Date.now() < (token.expiresAt as number)) {
+        return token
+      }
+
+      // Token expired — refresh it
+      try {
+        const response = await fetch("https://accounts.spotify.com/api/token", {
           method: "POST",
           headers: {
-            apikey: process.env.SUPABASE_SERVICE_ROLE_KEY!,
-            Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
-            "Content-Type": "application/json",
-            Prefer: "resolution=merge-duplicates",
+            Authorization: `Basic ${Buffer.from(
+              `${process.env.AUTH_SPOTIFY_ID}:${process.env.AUTH_SPOTIFY_SECRET}`
+            ).toString("base64")}`,
+            "Content-Type": "application/x-www-form-urlencoded",
           },
-          body: JSON.stringify({
-            spotify_id: profile.id,
-            name: profile.display_name,
-            email: profile.email,
-            image: profile.images?.[0]?.url || "",
-            refresh_token: account.refresh_token,
+          body: new URLSearchParams({
+            grant_type: "refresh_token",
+            refresh_token: token.refreshToken as string,
           }),
         })
+        const refreshed = await response.json()
+        token.accessToken = refreshed.access_token
+        token.expiresAt = Date.now() + refreshed.expires_in * 1000
+        if (refreshed.refresh_token) token.refreshToken = refreshed.refresh_token
+      } catch {
+        // Refresh failed — user needs to re-auth
+        token.accessToken = undefined
       }
 
       return token
     },
+
     async session({ session, token }: any) {
       if (token.accessToken) {
         session.accessToken = token.accessToken
@@ -46,7 +63,7 @@ export const authOptions: NextAuthOptions = {
       if (token.spotifyId) {
         session.spotifyId = token.spotifyId
       }
-      
+
       return session
     },
   },
