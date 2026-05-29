@@ -72,11 +72,8 @@ async function fetchRawArtists(
   )
 
   console.log(
-    "spotify top artists raw",
-    data.items?.map((artist: any) => ({
-      name: artist.name,
-      genres: artist.genres,
-    }))
+    "artist keys",
+    Object.keys(data.items?.[0] ?? {})
   )
 
   return data.items ?? []
@@ -87,7 +84,7 @@ function rawArtistsToTopArtists(raw: any[]): SpotifyArtist[] {
     name: artist.name,
     genres: artist.genres ?? []
   }))
-  
+
   console.log("mapped top artists", artists)
 
   return artists
