@@ -23,6 +23,33 @@ async function fetchSpotifyJson(accessToken: string, endpoint: string) {
   return response.json()
 }
 
+export async function getSpotifyAppToken(): Promise<string> {
+  const clientId = process.env.AUTH_SPOTIFY_ID
+  const clientSecret = process.env.AUTH_SPOTIFY_SECRET
+  if (!clientId || !clientSecret) { throw new Error("Missing Spotify credentials")}
+
+  const response = await fetch(
+    "https://accounts.spotify.com/api/token", {
+      method: "POST",
+      cache: "no-store",
+      headers: {
+        Authorization: `Basic ${Buffer.from(
+          `${clientId}:${clientSecret}`
+        ).toString("base64")}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({
+        grant_type: "client_credentials",
+      }),
+    }
+  )
+  if (!response.ok) {
+    throw new Error("Unable to get Spotify app token")
+  }
+  const payload = await response.json()
+  return payload.access_token
+}
+
 export async function refreshSpotifyAccessToken(refreshToken: string): Promise<string> {
   const clientId = process.env.AUTH_SPOTIFY_ID
   const clientSecret = process.env.AUTH_SPOTIFY_SECRET
@@ -100,27 +127,24 @@ function rawArtistsToGenreBreakdown(raw: any[]): SpotifyGenre[] {
 }
 
 async function enrichArtistsWithGenres(
-  accessToken: string,
   artists: any[]
 ): Promise<any[]> {
   if (artists.length === 0) return artists
+
   try {
-    const ids = artists.map((a: any) => a.id).join(",")
-    console.log("Enriching artist IDs:", ids)
-    const data = await fetchSpotifyJson(accessToken, `/artists?ids=${ids}`)
-    console.log("Raw enriched artists:", JSON.stringify(
-      data.artists?.map((a: any) => ({ id: a.id, name: a.name, genres: a.genres }))
-    ))
-    const genreMap = new Map<string, string[]>()
-    ;(data.artists ?? []).forEach((a: any) => {
-      genreMap.set(a.id, a.genres ?? [])
+    const appToken = await getSpotifyAppToken()
+    const ids = artists.map((a) => a.id).join(",")
+    const data = await fetchSpotifyJson(appToken, `/artists?ids=${ids}`)
+    const genreMap = new Map<string, string[]>();(data.artists ?? []).forEach((artist: any) => {
+      genreMap.set(artist.id, artist.genres ?? [])
     })
-    return artists.map((a: any) => ({
-      ...a,
-      genres: genreMap.get(a.id) ?? a.genres ?? [],
+
+    return artists.map((artist) => ({
+      ...artist,
+      genres: genreMap.get(artist.id) ?? artist.genres ?? [],
     }))
-  } catch (e) {
-    console.error("enrichArtistsWithGenres failed:", e)
+  } catch (error) {
+    console.error("enrichArtistsWithGenres failed:", error)
     return artists
   }
 }
@@ -133,12 +157,15 @@ export async function getPersonalStats(
     getTopTracks(accessToken, timeRange),
     fetchRawArtists(accessToken, timeRange, 10),
   ])
-
-  const enrichedArtists = await enrichArtistsWithGenres(accessToken, rawArtists)
+  const enrichedArtists = await enrichArtistsWithGenres(rawArtists)
   const topArtists = rawArtistsToTopArtists(enrichedArtists)
   const genreBreakdown = rawArtistsToGenreBreakdown(enrichedArtists)
 
-  return { topTracks, topArtists, genreBreakdown }
+  return {
+    topTracks,
+    topArtists,
+    genreBreakdown,
+  }
 }
 
 export async function getFullStatsForRefreshToken(
