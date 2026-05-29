@@ -78,15 +78,19 @@ async function fetchRawArtists(
       genres: artist.genres,
     }))
   )
-  
+
   return data.items ?? []
 }
 
 function rawArtistsToTopArtists(raw: any[]): SpotifyArtist[] {
-  return raw.slice(0, 5).map((artist: any) => ({
+  const artists = raw.slice(0, 5).map((artist: any) => ({
     name: artist.name,
     genres: artist.genres ?? []
   }))
+  
+  console.log("mapped top artists", artists)
+
+  return artists
 }
 
 function rawArtistsToGenreBreakdown(raw: any[]): SpotifyGenre[] {
