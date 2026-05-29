@@ -23,33 +23,6 @@ async function fetchSpotifyJson(accessToken: string, endpoint: string) {
   return response.json()
 }
 
-export async function getSpotifyAppToken(): Promise<string> {
-  const clientId = process.env.AUTH_SPOTIFY_ID
-  const clientSecret = process.env.AUTH_SPOTIFY_SECRET
-  if (!clientId || !clientSecret) { throw new Error("Missing Spotify credentials")}
-
-  const response = await fetch(
-    "https://accounts.spotify.com/api/token", {
-      method: "POST",
-      cache: "no-store",
-      headers: {
-        Authorization: `Basic ${Buffer.from(
-          `${clientId}:${clientSecret}`
-        ).toString("base64")}`,
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: new URLSearchParams({
-        grant_type: "client_credentials",
-      }),
-    }
-  )
-  if (!response.ok) {
-    throw new Error("Unable to get Spotify app token")
-  }
-  const payload = await response.json()
-  return payload.access_token
-}
-
 export async function refreshSpotifyAccessToken(refreshToken: string): Promise<string> {
   const clientId = process.env.AUTH_SPOTIFY_ID
   const clientSecret = process.env.AUTH_SPOTIFY_SECRET
@@ -126,29 +99,6 @@ function rawArtistsToGenreBreakdown(raw: any[]): SpotifyGenre[] {
   }))
 }
 
-async function enrichArtistsWithGenres(
-  artists: any[]
-): Promise<any[]> {
-  if (artists.length === 0) return artists
-
-  try {
-    const appToken = await getSpotifyAppToken()
-    const ids = artists.map((a) => a.id).join(",")
-    const data = await fetchSpotifyJson(appToken, `/artists?ids=${ids}`)
-    const genreMap = new Map<string, string[]>();(data.artists ?? []).forEach((artist: any) => {
-      genreMap.set(artist.id, artist.genres ?? [])
-    })
-
-    return artists.map((artist) => ({
-      ...artist,
-      genres: genreMap.get(artist.id) ?? artist.genres ?? [],
-    }))
-  } catch (error) {
-    console.error("enrichArtistsWithGenres failed:", error)
-    return artists
-  }
-}
-
 export async function getPersonalStats(
   accessToken: string,
   timeRange: TimeRange = "short_term"
@@ -157,14 +107,11 @@ export async function getPersonalStats(
     getTopTracks(accessToken, timeRange),
     fetchRawArtists(accessToken, timeRange, 10),
   ])
-  const enrichedArtists = await enrichArtistsWithGenres(rawArtists)
-  const topArtists = rawArtistsToTopArtists(enrichedArtists)
-  const genreBreakdown = rawArtistsToGenreBreakdown(enrichedArtists)
 
   return {
     topTracks,
-    topArtists,
-    genreBreakdown,
+    topArtists: rawArtistsToTopArtists(rawArtists),
+    genreBreakdown: rawArtistsToGenreBreakdown(rawArtists),
   }
 }
 
