@@ -70,13 +70,22 @@ async function fetchRawArtists(
     accessToken,
     `/me/top/artists?limit=${limit}&time_range=${timeRange}`
   )
+
+  console.log(
+    "spotify top artists raw",
+    data.items?.map((artist: any) => ({
+      name: artist.name,
+      genres: artist.genres,
+    }))
+  )
+  
   return data.items ?? []
 }
 
 function rawArtistsToTopArtists(raw: any[]): SpotifyArtist[] {
   return raw.slice(0, 5).map((artist: any) => ({
     name: artist.name,
-    genres: artist.genres ?? [],
+    genres: artist.genres ?? []
   }))
 }
 
