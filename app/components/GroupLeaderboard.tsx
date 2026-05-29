@@ -1,3 +1,5 @@
+"use client"
+
 import { Users } from "lucide-react"
 import type { SavedSpotifyUserWithTopTracks } from "../../types/spotify"
 import { useCurrentUser } from "../../lib/current-user-provider"

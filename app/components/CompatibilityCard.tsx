@@ -1,3 +1,5 @@
+"use client"
+
 import type { CompatibilityResult, ListenerPersonality, SavedSpotifyUserWithTopTracks } from "../../types/spotify"
 import { computeCompatibility } from "../../lib/spotify-final"
 import { useCurrentUser } from "../../lib/current-user-provider"
