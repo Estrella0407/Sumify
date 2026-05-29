@@ -156,6 +156,16 @@ export default async function Home({
 
         {session ? (
           <>
+            {/* TEMPORARY DEBUG - remove after checking */}
+            {stats && (
+              <pre style={{ color: "lime", fontSize: 10, padding: 16, overflowX: "auto", background: "#111", marginBottom: 16 }}>
+                {JSON.stringify({
+                  genres: stats.genreBreakdown,
+                  artists: stats.topArtists.map(a => ({ name: a.name, genres: a.genres }))
+                }, null, 2)}
+              </pre>
+            )}
+
             {/* Time range filter + label */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-8">
               <p className="text-sm" style={{ color: "#444" }}>

@@ -99,18 +99,40 @@ function rawArtistsToGenreBreakdown(raw: any[]): SpotifyGenre[] {
   }))
 }
 
+async function enrichArtistsWithGenres(
+  accessToken: string,
+  artists: any[]
+): Promise<any[]> {
+  if (artists.length === 0) return artists
+  try {
+    const ids = artists.map((a: any) => a.id).join(",")
+    const data = await fetchSpotifyJson(accessToken, `/artists?ids=${ids}`)
+    const genreMap = new Map<string, string[]>()
+    ;(data.artists ?? []).forEach((a: any) => {
+      genreMap.set(a.id, a.genres ?? [])
+    })
+    return artists.map((a: any) => ({
+      ...a,
+      genres: genreMap.get(a.id) ?? a.genres ?? [],
+    }))
+  } catch (e) {
+    console.error("enrichArtistsWithGenres failed:", e)
+    return artists // fall back to original
+  }
+}
+
 export async function getPersonalStats(
   accessToken: string,
   timeRange: TimeRange = "short_term"
 ): Promise<SpotifyStats> {
-  // Fetch tracks and artists in parallel — artists fetched ONCE
   const [topTracks, rawArtists] = await Promise.all([
     getTopTracks(accessToken, timeRange),
     fetchRawArtists(accessToken, timeRange, 10),
   ])
 
-  const topArtists = rawArtistsToTopArtists(rawArtists)
-  const genreBreakdown = rawArtistsToGenreBreakdown(rawArtists)
+  const enrichedArtists = await enrichArtistsWithGenres(accessToken, rawArtists)
+  const topArtists = rawArtistsToTopArtists(enrichedArtists)
+  const genreBreakdown = rawArtistsToGenreBreakdown(enrichedArtists)
 
   return { topTracks, topArtists, genreBreakdown }
 }
@@ -120,6 +142,7 @@ export async function getFullStatsForRefreshToken(
   timeRange: TimeRange = "short_term"
 ): Promise<SpotifyStats> {
   const accessToken = await refreshSpotifyAccessToken(refreshToken)
+
   return getPersonalStats(accessToken, timeRange)
 }
 
