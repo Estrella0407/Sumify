@@ -1,11 +1,6 @@
 import { BarChart2, TrendingUp, Users } from "lucide-react"
 import type { SpotifyStats } from "../../types/spotify"
 
-const friendPlaceholders = [
-  { name: "Friend #1", status: "Waiting to connect" },
-  { name: "Friend #2", status: "Waiting to connect" },
-]
-
 interface GroupLeaderboardProps {
   stats: SpotifyStats | null
 }
@@ -62,8 +57,8 @@ export function GroupLeaderboard({ stats }: GroupLeaderboardProps) {
       {/* Top artists */}
       <SectionCard
         icon={<TrendingUp className="h-4 w-4" style={{ color: "#1DB954" }} />}
-        label="Group leaderboard"
-        title="Top artists across your crew"
+        label="Top artists"
+        title="Your most played artists"
       >
         {topArtists.length ? (
           <div className="flex flex-col gap-2">
@@ -75,7 +70,10 @@ export function GroupLeaderboard({ stats }: GroupLeaderboardProps) {
               >
                 <span
                   className="text-xs font-black w-6 shrink-0"
-                  style={{ color: index === 0 ? "#1DB954" : "#333", fontFamily: "Syne, sans-serif" }}
+                  style={{
+                    color: index === 0 ? "#1DB954" : "#333",
+                    fontFamily: "Syne, sans-serif",
+                  }}
                 >
                   #{index + 1}
                 </span>
@@ -83,9 +81,11 @@ export function GroupLeaderboard({ stats }: GroupLeaderboardProps) {
                   <p className="font-semibold text-sm truncate" style={{ color: "#e0e0e0" }}>
                     {artist.name}
                   </p>
-                  <p className="text-xs" style={{ color: "#444" }}>
-                    Popularity score: {artist.plays}
-                  </p>
+                  {artist.genres?.length > 0 && (
+                    <p className="text-xs truncate" style={{ color: "#444" }}>
+                      {artist.genres.slice(0, 2).join(", ")}
+                    </p>
+                  )}
                 </div>
                 {index === 0 && (
                   <span
@@ -104,7 +104,7 @@ export function GroupLeaderboard({ stats }: GroupLeaderboardProps) {
           </div>
         ) : (
           <p className="text-sm leading-relaxed" style={{ color: "#444" }}>
-            Invite friends to authorize their Spotify accounts to fill this leaderboard.
+            No top artists yet. Make sure Spotify is connected and try refreshing.
           </p>
         )}
       </SectionCard>
@@ -141,7 +141,7 @@ export function GroupLeaderboard({ stats }: GroupLeaderboardProps) {
                       background:
                         i === 0
                           ? "linear-gradient(90deg, #1DB954, #1ed760)"
-                          : `rgba(29,185,84,${0.7 - i * 0.12})`,
+                          : `rgba(29,185,84,${0.7 - i * 0.1})`,
                     }}
                   />
                 </div>
@@ -150,39 +150,20 @@ export function GroupLeaderboard({ stats }: GroupLeaderboardProps) {
           </div>
         ) : (
           <p className="text-sm leading-relaxed" style={{ color: "#444" }}>
-            Top genres appear after Spotify sync.
+            No genre data returned. This can happen if your top artists don&apos;t have genre tags on Spotify yet.
           </p>
         )}
       </SectionCard>
 
-      {/* Friends */}
+      {/* Friends placeholder */}
       <SectionCard
         icon={<Users className="h-4 w-4" style={{ color: "#1DB954" }} />}
         label="Friends invited"
         title="Group session status"
       >
-        <div className="grid gap-3 sm:grid-cols-2">
-          {friendPlaceholders.map((friend) => (
-            <div
-              key={friend.name}
-              className="rounded-xl p-4"
-              style={{ background: "#151515", border: "1px solid rgba(255,255,255,0.04)" }}
-            >
-              <div
-                className="h-8 w-8 rounded-lg mb-3 flex items-center justify-center"
-                style={{ background: "#1a1a1a" }}
-              >
-                <Users className="h-3.5 w-3.5" style={{ color: "#333" }} />
-              </div>
-              <p className="text-sm font-semibold" style={{ color: "#666" }}>
-                {friend.name}
-              </p>
-              <p className="text-xs mt-0.5" style={{ color: "#333" }}>
-                {friend.status}
-              </p>
-            </div>
-          ))}
-        </div>
+        <p className="text-sm" style={{ color: "#444" }}>
+          Invite friends to connect their Spotify and appear here.
+        </p>
       </SectionCard>
     </section>
   )
