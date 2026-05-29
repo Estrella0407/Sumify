@@ -6,6 +6,52 @@ const supabase = createClient(
   { auth: { persistSession: false } }
 )
 
+const blockedGenres = new Set([
+  "seen live",
+  "favorites",
+  "favorite",
+  "female vocalists",
+  "male vocalists",
+  "british",
+  "american",
+])
+
+function normalizeGenre(genre: string): string {
+  const g = genre.toLowerCase().trim()
+
+  const aliases: Record<string, string> = {
+    "kpop": "k-pop",
+    "k pop": "k-pop",
+    "korean pop": "k-pop",
+
+    "jpop": "j-pop",
+    "j pop": "j-pop",
+    "japanese pop": "j-pop",
+
+    "hip hop": "hip-hop",
+    "hiphop": "hip-hop",
+
+    "r&b": "rnb",
+    "rnb/soul": "rnb",
+    "rhythm and blues": "rnb",
+
+    "dance-pop": "dance pop",
+    "dancepop": "dance pop",
+
+    "indie pop": "indie",
+    "indie rock": "indie",
+
+    "electro pop": "electropop",
+    "electro-pop": "electropop",
+  }
+
+  return aliases[g] || g
+}
+
+function normalizeGenres(genres: string[]): string[] {
+  return [...new Set(genres.map(normalizeGenre).filter(Boolean))]
+}
+
 // ── Cache ──────────────────────────────────────────────────────────────────────
 
 async function getCachedGenres(artistName: string): Promise<string[] | null> {
@@ -59,10 +105,12 @@ async function getGenresFromLastFm(artistName: string): Promise<string[]> {
   const data = await res.json()
   const tags = data?.artist?.tags?.tag ?? []
 
-  return (tags as Array<{ name: string }>)
-    .map((t) => t.name.toLowerCase())
-    .filter(Boolean)
-    .slice(0, 5)
+  return normalizeGenres(
+    (tags as Array<{ name: string }>)
+      .map((t) => t.name)
+  )
+  .filter((g) => !blockedGenres.has(g))
+  .slice(0, 5)
 }
 
 // ── TheAudioDB ─────────────────────────────────────────────────────────────────
@@ -84,7 +132,7 @@ async function getGenresFromAudioDB(artistName: string): Promise<string[]> {
   if (artist.strStyle) genres.push(artist.strStyle.toLowerCase())
   if (artist.strMood) genres.push(artist.strMood.toLowerCase())
 
-  return [...new Set(genres)].filter(Boolean).slice(0, 5)
+  return normalizeGenres(genres).slice(0, 5)
 }
 
 // ── Public API ─────────────────────────────────────────────────────────────────

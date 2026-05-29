@@ -115,7 +115,7 @@ export default async function Home({
         className="relative max-w-6xl mx-auto px-5 py-10 md:px-10 md:py-14"
         style={{ zIndex: 1 }}
       >
-        {/* Header */}
+        {/* Top bar */}
         <header className="flex items-center justify-between mb-10">
           <p
             className="text-xs font-bold tracking-widest uppercase"
@@ -123,12 +123,10 @@ export default async function Home({
           >
             Sumify
           </p>
-
-          {/* Settings icon — only when logged in */}
           {session && (
             <Link
               href="/settings"
-              className="h-9 w-9 rounded-xl flex items-center justify-center transition-colors"
+              className="h-9 w-9 rounded-xl flex items-center justify-center"
               style={{
                 background: "#1a1a1a",
                 border: "1px solid rgba(255,255,255,0.07)",
@@ -145,90 +143,96 @@ export default async function Home({
 
         {session ? (
           <>
-            {/* Hero text when logged in */}
-            <div className="mb-10">
+            {/* Page title */}
+            <div className="mb-8">
               <h1
-                className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-none mb-4"
-                style={{ fontFamily: "Syne, sans-serif", color: "#f0f0f0" }}
+                className="text-4xl sm:text-5xl font-black tracking-tight leading-none mb-3"
+                style={{ fontFamily: "Syne, sans-serif" }}
               >
-                Compare music
-                <br />
-                <span style={{ color: "#1DB954" }}>tastes</span> with friends.
+                Compare music{" "}
+                <span style={{ color: "#1DB954" }}>tastes</span>.
               </h1>
-              <p className="text-sm leading-relaxed max-w-md" style={{ color: "#555" }}>
-                Your listening data, your crew's data — side by side.
+              <p className="text-sm" style={{ color: "#555" }}>
+                Your listening data, your crew's — side by side.
               </p>
             </div>
 
-            {/* Time range filter */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-8">
-              <p className="text-sm" style={{ color: "#444" }}>
-                Showing data for{" "}
-                <span style={{ color: "#e0e0e0" }}>{RANGE_LABELS[timeRange]}</span>
-              </p>
-              <Suspense>
-                <TimeRangeFilter />
-              </Suspense>
-            </div>
-
-            {/* Personality */}
-            {myPersonality && (
-              <div className="mb-8">
-                <PersonalityBadge personality={myPersonality} name={session.user?.name ?? "You"} />
+            {/* Time range + personality row */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+              {myPersonality && (
+                <PersonalityBadge personality={myPersonality} name={session.user?.name ?? "You"} compact />
+              )}
+              <div className="flex items-center gap-3 sm:ml-auto">
+                <p className="text-xs" style={{ color: "#444" }}>
+                  {RANGE_LABELS[timeRange]}
+                </p>
+                <Suspense>
+                  <TimeRangeFilter />
+                </Suspense>
               </div>
-            )}
-
-            {/* Stats grid */}
-            <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
-              <ProfilePanel session={session} stats={stats} />
-              <GroupLeaderboard stats={stats} />
             </div>
 
-            {/* Friends */}
-            {savedUserColumns.length > 0 && (
-              <section className="mt-12 flex flex-col gap-12">
-                {/* Compatibility */}
-                {myProfile && savedUserColumns.some((u) => !u.error) && (
-                  <div>
-                    <div className="mb-5">
-                      <p
-                        className="text-xs font-bold tracking-widest uppercase mb-1"
-                        style={{ color: "#1DB954", fontFamily: "Syne, sans-serif" }}
-                      >
-                        Music compatibility
-                      </p>
-                      <h2 className="text-2xl font-bold" style={{ fontFamily: "Syne, sans-serif" }}>
-                        How do you match up?
-                      </h2>
-                    </div>
-                    <div className="grid gap-5 sm:grid-cols-2">
-                      {savedUserColumns
-                        .filter((u) => !u.error)
-                        .map((friend) => (
-                          <CompatibilityCard
-                            key={friend.spotifyId}
-                            currentUser={myProfile}
-                            friend={friend}
-                          />
-                        ))}
-                    </div>
-                  </div>
-                )}
+            {/* ── Profile panel — full width, 3 columns inside ── */}
+            <ProfilePanel session={session} stats={stats} />
 
-                {/* Friend columns */}
+            {/* ── Group session + comparisons ── */}
+            <div className="mt-8 flex flex-col gap-8">
+
+              {/* Connected members */}
+              <GroupLeaderboard
+                savedUsers={savedUserColumns}
+                currentUserName={session.user?.name ?? "You"}
+                currentUserImage={session.user?.image ?? null}
+              />
+
+              {/* Compatibility */}
+              {myProfile && savedUserColumns.some((u) => !u.error) && (
                 <div>
-                  <div className="mb-5">
+                  <div className="mb-4">
+                    <p
+                      className="text-xs font-bold tracking-widest uppercase mb-1"
+                      style={{ color: "#1DB954", fontFamily: "Syne, sans-serif" }}
+                    >
+                      Music compatibility
+                    </p>
+                    <h2
+                      className="text-2xl font-bold"
+                      style={{ fontFamily: "Syne, sans-serif" }}
+                    >
+                      How do you match up?
+                    </h2>
+                  </div>
+                  <div className="grid gap-5 sm:grid-cols-2">
+                    {savedUserColumns
+                      .filter((u) => !u.error)
+                      .map((friend) => (
+                        <CompatibilityCard
+                          key={friend.spotifyId}
+                          currentUser={myProfile}
+                          friend={friend}
+                        />
+                      ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Friend columns */}
+              {savedUserColumns.length > 0 && (
+                <div>
+                  <div className="mb-4">
                     <p
                       className="text-xs font-bold tracking-widest uppercase mb-1"
                       style={{ color: "#1DB954", fontFamily: "Syne, sans-serif" }}
                     >
                       Connected friends
                     </p>
-                    <h2 className="text-2xl font-bold" style={{ fontFamily: "Syne, sans-serif" }}>
+                    <h2
+                      className="text-2xl font-bold"
+                      style={{ fontFamily: "Syne, sans-serif" }}
+                    >
                       Top tracks for every user
                     </h2>
                   </div>
-
                   <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
                     {savedUserColumns.map((user) => (
                       <article
@@ -265,7 +269,11 @@ export default async function Home({
                         </div>
 
                         {!user.error && (
-                          <PersonalityBadge personality={user.personality} name={user.name} compact />
+                          <PersonalityBadge
+                            personality={user.personality}
+                            name={user.name}
+                            compact
+                          />
                         )}
 
                         {user.error ? (
@@ -306,11 +314,11 @@ export default async function Home({
                     ))}
                   </div>
                 </div>
-              </section>
-            )}
+              )}
+            </div>
           </>
         ) : (
-          /* Landing — single centered connect button */
+          /* Landing */
           <div className="flex flex-col items-center justify-center min-h-[70vh] text-center">
             <div
               className="h-20 w-20 rounded-2xl mb-8 flex items-center justify-center"
@@ -330,7 +338,8 @@ export default async function Home({
               className="text-4xl sm:text-6xl font-black tracking-tight leading-none mb-4 max-w-xl"
               style={{ fontFamily: "Syne, sans-serif" }}
             >
-              Your music,<br />
+              Your music,
+              <br />
               <span style={{ color: "#1DB954" }}>ranked.</span>
             </h1>
             <p
